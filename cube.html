@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mundo de Cubitos</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    canvas {
+      background: #eee;
+      margin-top: 10px;
+    }
+
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .row {
+      display: flex;
+      gap: 5px;
+    }
+
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      background-color: #ddd;
+      border: none;
+      border-radius: 10px;
+    }
+
+    @media (min-width: 600px) {
+      .controls {
+        display: none; /* ocultar en escritorio */
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>Mundo de Cubitos</h2>
+  <canvas id="game" width="600" height="400"></canvas>
+
+  <!-- Controles para móvil -->
+  <div class="controls">
+    <div class="row">
+      <button class="control-btn" data-dir="ArrowUp">⬆️</button>
+    </div>
+    <div class="row">
+      <button class="control-btn" data-dir="ArrowLeft">⬅️</button>
+      <button class="control-btn" data-dir="ArrowDown">⬇️</button>
+      <button class="control-btn" data-dir="ArrowRight">➡️</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const socket = io();
+
+    let players = {};
+
+    socket.on('players', (serverPlayers) => {
+      players = serverPlayers;
+    });
+
+    socket.on('playerMoved', (data) => {
+      players[data.id] = data;
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        socket.emit('move', e.key);
+      }
+    });
+
+    // Controles para celular
+    const buttons = document.querySelectorAll('.control-btn');
+    buttons.forEach(button => {
+      button.addEventListener('touchstart', () => {
+        const dir = button.getAttribute('data-dir');
+        socket.emit('move', dir);
+      });
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const id in players) {
+        const p = players[id];
+        ctx.fillStyle = id === socket.id ? 'blue' : 'red';
+        ctx.fillRect(p.x, p.y, 20, 20);
+      }
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
+</body>
+</html>
